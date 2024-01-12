@@ -131,8 +131,16 @@ def duckdb_date_sub_sql(self, expression):
     this = self.sql(expression, "this")
     unit = self.sql(expression, "unit") or "DAY" # .strip("'")
     return f"{this} - {self.sql(exp.Interval(this=expression.expression, unit=unit))}"
+
+def duckdb_date_add_sql(self, expression):
+    #print("CALLING duckdb._date_sub")
+    this = self.sql(expression, "this")
+    unit = self.sql(expression, "unit") or "DAY" # .strip("'")
+    return f"{this} + {self.sql(exp.Interval(this=expression.expression, unit=unit))}"
+
 sqlglot.dialects.duckdb.DuckDB.Generator.TRANSFORMS[exp.DatetimeSub] = duckdb_date_sub_sql
-sqlglot.dialects.duckdb.DuckDB.Generator.TRANSFORMS[exp.DatetimeAdd] = sqlglot.dialects.duckdb._date_add
+sqlglot.dialects.duckdb.DuckDB.Generator.TRANSFORMS[exp.DatetimeAdd] = duckdb_date_add_sql
+#sqlglot.dialects.duckdb._date_add
 
 _unit_ms_conversion_factor_map = {
     'SECOND': 1e6,
@@ -182,7 +190,7 @@ def _duckdb_rewrite_schema(sql: str, schema: str):
 
 
 def _make_duckdb_query_bigquery(qname: str, qfile: str, conn, schema: str = None):
-    _multischema_trunc_re = re.compile("\"physionet-data\.mimiciii_\w+\.")
+    _multischema_trunc_re = re.compile("\"physionet-data\"\.mimiciii_\w+\.")
     
     #TODO: better answer here? should only hit ccs_dx.sql!
     _too_many_backslashes_re = re.compile("\\\\([\[\.\]])") 
@@ -196,7 +204,7 @@ def _make_duckdb_query_bigquery(qname: str, qfile: str, conn, schema: str = None
             print(sql)
             raise e
         for st in sql_list:
-            sql = re.sub(_multischema_trunc_re, "\"", st)
+            sql = re.sub(_multischema_trunc_re, "", st)
 
             if schema is not None:
                 sql = _duckdb_rewrite_schema(sql, schema)
